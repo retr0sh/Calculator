@@ -21,17 +21,19 @@ public class HistoryItem {
         this.timestamp = System.currentTimeMillis();  // текущее время в миллисекундах
     }
 
-    // геттеры и сеттеры
+    // Геттеры - нужны чтобы читать данные
     public long getId() { return id; }
-    public void setId(long id) { this.id = id; }
     public String getExpression() { return expression; }
-    public void setExpression(String expression) { this.expression = expression; }
     public String getResult() { return result; }
-    public void setResult(String result) { this.result = result; }
     public long getTimestamp() { return timestamp; }
+
+    // Сеттеры - нужны Room чтобы заполнять объект при загрузке из БД
+    public void setId(long id) { this.id = id; }
+    public void setExpression(String expression) { this.expression = expression; }
+    public void setResult(String result) { this.result = result; }
     public void setTimestamp(long timestamp) { this.timestamp = timestamp; }
 
-    // форматирование даты для отображения (день.месяц.год часы:минуты)
+    // форматирование даты для отображения (день, месяц, год, часы:минуты)
     public String getFormattedDate() {
         return new SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
                 .format(new Date(timestamp));

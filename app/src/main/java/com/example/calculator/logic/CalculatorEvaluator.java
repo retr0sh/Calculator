@@ -1,159 +1,87 @@
 package com.example.calculator.logic;
 
-import java.util.*;
-
 public class CalculatorEvaluator {
 
-    // главный метод: вычисление выражения и возврат результата в виде строки
     public static String evaluate(String expression) {
-        if (expression == null || expression.isEmpty()) {
-            return "0";  // пустое выражение = 0
-        }
-
         try {
-            // подготовка выражения: замена запятых на точки, символов × и ÷
-            String processed = expression.replace(',', '.')
+            // Пустое выражение = 0
+            if (expression == null || expression.isEmpty()) return "0";
+
+            // готовит строку для парсера заменой символов
+            String expr = expression.replace(',', '.')
                     .replace("×", "*")
                     .replace("÷", "/")
                     .replace(" ", "");
 
-            double result = evaluateExpression(processed);  // вычисление
+            // парсер разбирает выражение по правилам математики
+            double result = new Object() {
+                int pos = -1;      // текущая позиция в строке
+                int ch;            // текущий символ
 
-            // проверка на некорректный результат
-            if (Double.isNaN(result) || Double.isInfinite(result)) {
-                return "Ошибка";
-            }
-
-            // форматирование: целые числа без .0
-            if (result == (long) result) {
-                return String.valueOf((long) result);
-            } else {
-                String formatted = String.format("%.10f", result);
-                formatted = formatted.replaceAll("0*$", "").replaceAll("\\.$", "");
-                return formatted;
-            }
-        } catch (Exception e) {
-            return "Ошибка";  // любая ошибка = "Ошибка"
-        }
-    }
-
-    // вычисление выражения
-    private static double evaluateExpression(String expression) {
-        List<String> tokens = tokenizeWithNegatives(expression);  // разбор на токены
-        List<String> rpn = convertToRPN(tokens);                 // преобразование в ОПН
-        return evaluateRPN(rpn);                                 // вычисление ОПН
-    }
-
-    // разбиение строки на токены с поддержкой унарного минуса
-    private static List<String> tokenizeWithNegatives(String expression) {
-        List<String> tokens = new ArrayList<>();
-        StringBuilder currentNumber = new StringBuilder();
-        boolean expectNumber = true;  // ожидаем число (для определения унарного минуса)
-
-        for (int i = 0; i < expression.length(); i++) {
-            char c = expression.charAt(i);
-
-            if (Character.isDigit(c) || c == '.') {
-                currentNumber.append(c);  // собираем число
-                expectNumber = false;
-            } else if (c == '+' || c == '*' || c == '/') {
-                if (currentNumber.length() > 0) {
-                    tokens.add(currentNumber.toString());
-                    currentNumber.setLength(0);
+                void nextChar() {  // взять следующий символ
+                    ch = (++pos < expr.length()) ? expr.charAt(pos) : -1;
                 }
-                tokens.add(String.valueOf(c));
-                expectNumber = true;  // после оператора ожидаем число
-            } else if (c == '-') {
-                if (expectNumber) {
-                    currentNumber.append('-');  // унарный минус - часть числа
-                } else {
-                    if (currentNumber.length() > 0) {
-                        tokens.add(currentNumber.toString());
-                        currentNumber.setLength(0);
+
+                boolean eat(int c) {  // проверить и пропустить символ
+                    if (ch == c) { nextChar(); return true; }
+                    return false;
+                }
+
+                double parse() {      // начать разбор
+                    nextChar();
+                    return parseExpression();
+                }
+
+                // Сложение и вычитание
+                double parseExpression() {
+                    double x = parseTerm();
+                    while (true) {
+                        if (eat('+')) x += parseTerm();
+                        else if (eat('-')) x -= parseTerm();
+                        else return x;
                     }
-                    tokens.add("-");  // бинарный минус - оператор
-                    expectNumber = true;
                 }
-            }
-        }
 
-        if (currentNumber.length() > 0) {
-            tokens.add(currentNumber.toString());  // последнее число
-        }
-
-        return tokens;
-    }
-
-    // преобразование инфиксной записи в обратную польскую нотацию (ОПН) - алгоритм сортировочной станции
-    private static List<String> convertToRPN(List<String> tokens) {
-        List<String> output = new ArrayList<>();      // выходная очередь
-        Stack<String> operators = new Stack<>();       // стек операторов
-
-        // приоритеты операторов
-        Map<String, Integer> precedence = new HashMap<>();
-        precedence.put("+", 1);
-        precedence.put("-", 1);
-        precedence.put("*", 2);
-        precedence.put("/", 2);
-
-        for (String token : tokens) {
-            if (isNumber(token)) {
-                output.add(token);  // числа сразу в выход
-            } else if (isOperator(token)) {
-                // выталкиваем операторы с большим или равным приоритетом
-                while (!operators.isEmpty() && isOperator(operators.peek()) &&
-                        precedence.get(operators.peek()) >= precedence.get(token)) {
-                    output.add(operators.pop());
+                // Умножение и деление
+                double parseTerm() {
+                    double x = parseFactor();
+                    while (true) {
+                        if (eat('*')) x *= parseFactor();
+                        else if (eat('/')) x /= parseFactor();
+                        else return x;
+                    }
                 }
-                operators.push(token);
-            }
-        }
 
-        // выталкиваем оставшиеся операторы
-        while (!operators.isEmpty()) {
-            output.add(operators.pop());
-        }
-        return output;
-    }
+                // Числа и скобки
+                double parseFactor() {
+                    if (eat('+')) return parseFactor();   // унарный плюс
+                    if (eat('-')) return -parseFactor();  // унарный минус
 
-    // вычисление выражения в обратной польской нотации
-    private static double evaluateRPN(List<String> rpn) {
-        Stack<Double> stack = new Stack<>();
+                    double x;
+                    int start = pos;
 
-        for (String token : rpn) {
-            if (isNumber(token)) {
-                stack.push(Double.parseDouble(token));  // число в стек
-            } else if (isOperator(token)) {
-                if (stack.size() < 2) {
-                    throw new IllegalArgumentException("Недостаточно операндов");
+                    if (eat('(')) {                       // (выражение)
+                        x = parseExpression();
+                        eat(')');
+                    } else if ((ch >= '0' && ch <= '9') || ch == '.') {  // число
+                        while ((ch >= '0' && ch <= '9') || ch == '.') nextChar();
+                        x = Double.parseDouble(expr.substring(start, pos));
+                    } else {
+                        throw new RuntimeException("Ошибка");
+                    }
+                    return x;
                 }
-                double b = stack.pop();  // правый операнд
-                double a = stack.pop();  // левый операнд
-                switch (token) {
-                    case "+": stack.push(a + b); break;
-                    case "-": stack.push(a - b); break;
-                    case "*": stack.push(a * b); break;
-                    case "/":
-                        if (b == 0) throw new ArithmeticException("Деление на ноль");
-                        stack.push(a / b);
-                        break;
-                }
-            }
+            }.parse();
+
+            // Проверка на ошибку
+            if (Double.isNaN(result) || Double.isInfinite(result)) return "Ошибка";
+
+            // Форматируем результат: целые числа без .0, у дробных убираем лишние нули
+            if (result == (long) result) return String.valueOf((long) result);
+            return String.format("%.10f", result).replaceAll("0*$", "").replaceAll("\\.$", "");
+
+        } catch (Exception e) {
+            return "Ошибка";
         }
-
-        if (stack.size() != 1) {
-            throw new IllegalArgumentException("Некорректное выражение");
-        }
-        return stack.pop();
-    }
-
-    // проверка: является ли токен числом (целым или дробным, положительным или отрицательным)
-    private static boolean isNumber(String token) {
-        return token.matches("-?\\d+(\\.\\d+)?");
-    }
-
-    // проверка: является ли токен оператором
-    private static boolean isOperator(String token) {
-        return token.equals("+") || token.equals("-") || token.equals("*") || token.equals("/");
     }
 }
