@@ -233,7 +233,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Выделяем последнее число
         String num = (idx >= 0 && idx + 1 < current.length()) ? current.substring(idx + 1) : current;
-        // Меняем знак (исправлено: newNum -> num)
+        // Меняем знак
         String newNum = num.startsWith("-") ? num.substring(1) : "-" + num;
 
         // Собираем выражение заново
