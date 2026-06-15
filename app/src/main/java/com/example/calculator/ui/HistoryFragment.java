@@ -26,11 +26,6 @@ public class HistoryFragment extends Fragment {
         void onHistoryItemSelected(String expression);  // вызывается при нажатии на запись
     }
 
-    // Устанавливаем слушатель
-    public void setOnHistoryItemClickListener(OnHistoryItemClickListener listener) {
-        this.listener = listener;
-    }
-
     // Создает View фрагмента
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {

@@ -8,7 +8,7 @@ import java.util.Locale;
 
 @Entity(tableName = "history")  // таблица в БД Room
 public class HistoryItem {
-    @PrimaryKey(autoGenerate = true)
+    @PrimaryKey(autoGenerate = true) // автогенерация первичного ключа
     private long id;              // уникальный идентификатор (автоинкремент)
     private String expression;   // математическое выражение (например: "2+2")
     private String result;       // результат вычисления (например: "4")
