@@ -220,29 +220,53 @@ public class MainActivity extends AppCompatActivity {
     private void sign() {
         if (expr.length() == 0) return;
 
+        // Если начато новое вычисление, используем последний результат
+        if (newCalc) {
+            expr.setLength(0);
+            expr.append(lastResult);
+            newCalc = false;
+        }
+
         String current = expr.toString();
+
         // Ищем последний оператор
-        int idx = -1;
+        int lastOpIndex = -1;
         for (int i = current.length() - 1; i >= 0; i--) {
             char c = current.charAt(i);
             if (c == '+' || c == '-' || c == '*' || c == '/') {
-                idx = i;
+                lastOpIndex = i;
                 break;
             }
         }
 
         // Выделяем последнее число
-        String num = (idx >= 0 && idx + 1 < current.length()) ? current.substring(idx + 1) : current;
-        // Меняем знак
-        String newNum = num.startsWith("-") ? num.substring(1) : "-" + num;
+        String lastNumber;
+        if (lastOpIndex >= 0) {
+            lastNumber = current.substring(lastOpIndex + 1);
+        } else {
+            lastNumber = current;
+        }
+
+        // Проверяем, пустое ли последнее число
+        if (lastNumber.isEmpty()) return;
+
+        // Меняем знак числа
+        String newNumber;
+        if (lastNumber.startsWith("-")) {
+            newNumber = lastNumber.substring(1); // убираем минус
+        } else {
+            newNumber = "-" + lastNumber; // добавляем минус
+        }
 
         // Собираем выражение заново
         expr.setLength(0);
-        if (idx >= 0) {
-            expr.append(current.substring(0, idx + 1)).append(newNum);
+        if (lastOpIndex >= 0) {
+            expr.append(current.substring(0, lastOpIndex + 1));
+            expr.append(newNumber);
         } else {
-            expr.append(newNum);
+            expr.append(newNumber);
         }
+
         update();
     }
 
